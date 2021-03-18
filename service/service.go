@@ -11,7 +11,7 @@ import (
 )
 
 type service interface {
-	apiNavy()
+	ApiNavy()
 }
 
 type Satelite struct {
@@ -65,26 +65,40 @@ func PostNaviHandler(w http.ResponseWriter, req *http.Request) {
 
 		err := ctx.Err()
 		fmt.Println("server:", err)
-		internalError := http.StatusInternalServerError
+		internalError := http.StatusBadRequest
 		http.Error(w, err.Error(), internalError)
 	}
 }
 
 func PostSplitNaviHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
-	key := vars["id"]
+	key := vars["satellite_name"]
 	fmt.Fprintf(w, "Key: "+key)
+	select {
+	case <-time.After(10 * time.Second):
+		fmt.Println("Codificar")
+		//reqBody, _ := ioutil.ReadAll(req.Body)
+		var satelite Satelite
+		json.NewDecoder(r.Body).Decode(&Satelites)
+		Satelites[1].Name = key
+		fmt.Println(satelite)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Satelites)
+	case <-ctx.Done():
+
+		err := ctx.Err()
+		fmt.Println("server:", err)
+		internalError := http.StatusBadRequest
+		http.Error(w, err.Error(), internalError)
+	}
+
 }
 
-func handleRequests() {
+func main() {
 	// creates a new instance of a mux router
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/topsecret", PostNaviHandler).Methods("POST")
 	r.HandleFunc("/topsecret_split/{satellite_name}", PostSplitNaviHandler).Methods("POST")
 	log.Fatal(http.ListenAndServe(":8090", r))
-}
-
-//func ApiNavy() {
-func main() {
-	handleRequests()
 }
